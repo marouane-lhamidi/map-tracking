@@ -17,6 +17,8 @@ export class MapComponent {
   map!: Leaflet.Map;
   initialMarkers : ArchEntry[] | undefined;
   markers: Leaflet.Marker[] = [];
+  polyline: Leaflet.Polyline | undefined;
+  drawPolyline: boolean = false;
 
   options = {
     layers: [
@@ -24,7 +26,7 @@ export class MapComponent {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       })
     ],
-    zoom: 12,
+    zoom: 18,
     center: { lat:  35.76455, lng: 10.69758 }
   }
   constructor(private mapService: MapService) { }
@@ -45,10 +47,32 @@ export class MapComponent {
 
   }
   generateMarker(data: any, index: number) {
-    return Leaflet.marker({ lat: data.position.lat, lng: data.position.lan }, { draggable: data.draggable })
+    const smallIcon = new Leaflet.Icon({
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      iconSize: [20, 40],
+    });
+    return Leaflet.marker({ lat: data.position.lat, lng: data.position.lan }, {
+      draggable: data.draggable,
+      icon: smallIcon
+    })
       .on('click', (event) => this.markerClicked(event, index))
       .on('dragend', (event) => this.markerDragEnd(event, index));
   }
+
+  public togglePolyline(): void {
+    if (this.drawPolyline) {
+      if (this.polyline) {
+        this.map.removeLayer(this.polyline);
+      }
+    } else {
+      if (this.initialMarkers != undefined) {
+        const coordinates : Leaflet.LatLngExpression[] = this.initialMarkers.map(entry => [entry.position.lat, entry.position.lan]);
+        this.polyline = Leaflet.polyline(coordinates, {color: 'blue'}).addTo(this.map);
+      }
+    }
+    this.drawPolyline = !this.drawPolyline;
+  }
+
 
   onMapReady($event: Leaflet.Map) {
     this.map = $event;

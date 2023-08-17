@@ -1,3 +1,40 @@
 .map-container {
   height: 600px;
 }
+
+.card {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000; /* Ensure the card is above the map */
+  width: 200px;
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px;
+}
+
+/* Custom button styles */
+.card-button {
+  display: block;
+  width: 100%;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.card-button:hover {
+  background-color: #0056b3;
+}

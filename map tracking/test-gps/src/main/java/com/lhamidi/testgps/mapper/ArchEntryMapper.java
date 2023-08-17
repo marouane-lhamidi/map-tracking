@@ -4,7 +4,6 @@ import com.lhamidi.testgps.dto.ArchEntryResponse;
 import com.lhamidi.testgps.model.ArchEntry;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.NullValueMappingStrategy;
 
 @Mapper(componentModel = "spring")
 public interface ArchEntryMapper {

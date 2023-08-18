@@ -1,0 +1,46 @@
+version: "3"
+services:
+  postgres:
+    image: postgres
+    hostname: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - tracking
+    ports:
+      - "5432:5432"
+      
+
+  test-gps:
+    image: marouanelhamidi/test-gps
+    container_name: map_tracking-back
+    environment:
+      - POSTGRESQL_DB=postgres
+    networks:
+      - tracking
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+
+  rimtelecom-front:
+    image: marouanelhamidi/rimtelecom-front
+    container_name: map_tracking-front
+    networks:
+      - tracking
+    ports:
+      - "4200:80"
+    depends_on:
+      - test-gps
+
+
+
+
+networks:
+  tracking:
+
+

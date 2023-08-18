@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import {Component, EventEmitter, Output, ViewChild} from '@angular/core';
 import * as Leaflet from 'leaflet';
 import {MapService} from "../service/map.service";
 import {ArchEntry} from "../model/ArchEntry";
+
 import 'leaflet-control-geocoder';
 import "leaflet-routing-machine";
 
@@ -51,9 +52,38 @@ export class MapComponent {
         this.map.panTo([element.position.lat, element.position.lan]);
         this.markers.push(marker)
       }
-      (Leaflet.Control as any).geocoder().addTo(this.map);
+      const geocoderControl =(Leaflet.Control as any).geocoder().addTo(this.map);
+      geocoderControl.on('markgeocode', (event: any) => {
+        const location = event.geocode.center;
 
-      (Leaflet.Control as any).geocoder().addTo(this.map);
+        if (this.markersNumber == undefined) {
+          this.markerRoot = Leaflet.marker(location).addTo(this.map);
+          this.markersNumber = 1;
+        }else if (this.markersNumber == 1)
+        {
+          if (this.markerRoot != undefined) {
+            const marker: Marker = this.markerRoot;
+
+            this.routingControl = Leaflet.Routing.control({
+              waypoints: [
+                Leaflet.latLng(marker.getLatLng().lat, marker.getLatLng().lng),
+                Leaflet.latLng(location)
+              ]
+            }).addTo(this.map);
+            this.animate(marker);
+          }
+          this.markersNumber = 2;
+
+        }else if (this.markersNumber == 2){
+          if (this.markerRoot)
+            this.map.removeLayer(this.markerRoot);
+          if (this.routingControl)
+            this.map.removeControl(this.routingControl);
+          this.markersNumber = undefined;
+
+        }
+
+      });
 
     })
   }
@@ -126,6 +156,10 @@ export class MapComponent {
     });
 
   }
+
+
+
+
 
   markerClicked($event: any, index: number) {
     console.log($event.latlng.lat, $event.latlng.lng);

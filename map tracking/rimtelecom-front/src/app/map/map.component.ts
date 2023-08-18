@@ -2,6 +2,11 @@ import { Component } from '@angular/core';
 import * as Leaflet from 'leaflet';
 import {MapService} from "../service/map.service";
 import {ArchEntry} from "../model/ArchEntry";
+import 'leaflet-control-geocoder';
+import "leaflet-routing-machine";
+
+import {Marker} from "leaflet";
+
 
 Leaflet.Icon.Default.mergeOptions({
   iconRetinaUrl: 'assets/marker-icon-2x.png',
@@ -17,8 +22,12 @@ export class MapComponent {
   map!: Leaflet.Map;
   initialMarkers : ArchEntry[] | undefined;
   markers: Leaflet.Marker[] = [];
+  routingControl: Leaflet.Routing.Control | undefined;
+  markerRoot: Leaflet.Marker | undefined;
+  markersNumber : number | undefined;
   polyline: Leaflet.Polyline | undefined;
   drawPolyline: boolean = false;
+
 
   options = {
     layers: [
@@ -42,18 +51,15 @@ export class MapComponent {
         this.map.panTo([element.position.lat, element.position.lan]);
         this.markers.push(marker)
       }
+      (Leaflet.Control as any).geocoder().addTo(this.map);
+
+      (Leaflet.Control as any).geocoder().addTo(this.map);
 
     })
-
   }
   generateMarker(data: any, index: number) {
-    const smallIcon = new Leaflet.Icon({
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      iconSize: [20, 40],
-    });
     return Leaflet.marker({ lat: data.position.lat, lng: data.position.lan }, {
-      draggable: data.draggable,
-      icon: smallIcon
+      draggable: data.draggable
     })
       .on('click', (event) => this.markerClicked(event, index))
       .on('dragend', (event) => this.markerDragEnd(event, index));
@@ -80,7 +86,45 @@ export class MapComponent {
   }
 
   mapClicked($event: any) {
-    console.log($event.latlng.lat, $event.latlng.lng);
+    if (this.markersNumber == undefined) {
+      this.markerRoot = Leaflet.marker([$event.latlng.lat, $event.latlng.lng]).addTo(this.map);
+      this.markersNumber = 1;
+    }else if (this.markersNumber == 1)
+    {
+      if (this.markerRoot != undefined) {
+        const marker: Marker = this.markerRoot;
+
+         this.routingControl = Leaflet.Routing.control({
+          waypoints: [
+            Leaflet.latLng(marker.getLatLng().lat, marker.getLatLng().lng),
+            Leaflet.latLng($event.latlng.lat, $event.latlng.lng)
+          ]
+        }).addTo(this.map);
+        this.animate(marker);
+      }
+      this.markersNumber = 2;
+
+    }else if (this.markersNumber == 2){
+      if (this.markerRoot)
+        this.map.removeLayer(this.markerRoot);
+      if (this.routingControl)
+        this.map.removeControl(this.routingControl);
+      this.markersNumber = undefined;
+
+    }
+
+
+  }
+  animate(marker: Marker){
+    if (this.routingControl)
+    this.routingControl.on('routesfound', (event: any) => {
+      event.routes[0].coordinates.forEach(function(coord: Leaflet.LatLng, index: number) {
+        setTimeout(() => {
+          marker.setLatLng([coord.lat, coord.lng]);
+        }, 100 * index);
+      });
+    });
+
   }
 
   markerClicked($event: any, index: number) {
@@ -90,4 +134,5 @@ export class MapComponent {
   markerDragEnd($event: any, index: number) {
     console.log($event.target.getLatLng());
   }
+
 }

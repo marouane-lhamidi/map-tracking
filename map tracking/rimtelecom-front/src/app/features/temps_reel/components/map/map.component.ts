@@ -65,63 +65,10 @@ export class MapComponent {
 
       }
 
-      const geocoderControl =(Leaflet.Control as any).geocoder().addTo(this.map);
-      geocoderControl.on('markgeocode', (event: any) => {
-        const location = event.geocode.center;
-
-        if (this.markersNumber == undefined) {
-          this.markerRoot = Leaflet.marker(location).addTo(this.map);
-          this.markersNumber = 1;
-        }else if (this.markersNumber == 1)
-        {
-          if (this.markerRoot != undefined) {
-            const marker: Marker = this.markerRoot;
-
-            this.routingControl = Leaflet.Routing.control({
-              waypoints: [
-                Leaflet.latLng(marker.getLatLng().lat, marker.getLatLng().lng),
-                Leaflet.latLng(location)
-              ]
-            }).addTo(this.map);
-            this.mapService.move(marker, this.routingControl);
-          }
-          this.markersNumber = 2;
-
-        }else if (this.markersNumber == 2){
-          if (this.markerRoot)
-            this.map.removeLayer(this.markerRoot);
-          if (this.routingControl)
-            this.map.removeControl(this.routingControl);
-          this.markersNumber = undefined;
-
-        }
-
-      });
-
     })
   }
 
   mapClicked($event: any) {
-    const marker = Leaflet.marker(Leaflet.latLng($event.latlng.lat, $event.latlng.lng));
-    if (this.markersToUse.length == 0) {
-      this.markersToUse.push(marker.addTo(this.map) );
-    } else if (this.markersToUse.length == 1) {
-      this.markersToUse.push(marker.addTo(this.map))
-       this.routingControl = Leaflet.Routing.control({
-        waypoints: [this.markersToUse[0].getLatLng(), this.markersToUse[1].getLatLng()]
-      }).addTo(this.map);
-      this.mapService.move(this.markersToUse[0], this.routingControl);
-
-    }else if (this.markersToUse.length == 2){
-      this.map.removeLayer(this.markersToUse[0]);
-      this.map.removeLayer(this.markersToUse[1]);
-
-      if (this.routingControl)
-        this.map.removeControl(this.routingControl);
-
-      this.markersToUse = [];
-    }
-
   }
 
   public togglePolyline(): void {

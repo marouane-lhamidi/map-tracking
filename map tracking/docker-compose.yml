@@ -2,8 +2,8 @@ version: "3"
 services:
   postgres:
     image: postgres
-    hostname: postgres
-    container_name: postgres
+    hostname: postgresql
+    container_name: postgresql
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -26,16 +26,6 @@ services:
     depends_on:
       - postgres
 
-
-  rimtelecom-front:
-    image: marouanelhamidi/rimtelecom-front
-    container_name: map_tracking-front
-    networks:
-      - tracking
-    ports:
-      - "4200:80"
-    depends_on:
-      - test-gps
 
 
 

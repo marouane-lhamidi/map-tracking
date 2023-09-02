@@ -1,12 +1,14 @@
 import {Component, EventEmitter, Output, ViewChild} from '@angular/core';
 import * as Leaflet from 'leaflet';
-import {MapService} from "../service/map.service";
-import {ArchEntry} from "../model/ArchEntry";
+
 
 import 'leaflet-control-geocoder';
 import "leaflet-routing-machine";
 
-import {Marker} from "leaflet";
+import {latLng, Marker} from "leaflet";
+import { ArchEntry } from '../../model/ArchEntry';
+import { ApiRestMapService } from '../../service/api-rest-map.service';
+import { MapService } from '../../service/map.service';
 
 
 Leaflet.Icon.Default.mergeOptions({
@@ -28,6 +30,7 @@ export class MapComponent {
   markersNumber : number | undefined;
   polyline: Leaflet.Polyline | undefined;
   drawPolyline: boolean = false;
+  markersToUse: Marker[] = [];
 
 
   options = {
@@ -39,19 +42,29 @@ export class MapComponent {
     zoom: 18,
     center: { lat:  35.76455, lng: 10.69758 }
   }
-  constructor(private mapService: MapService) { }
+  constructor(public apiRestMapService: ApiRestMapService, public mapService: MapService) { }
+
+  onMapReady($event: Leaflet.Map) {
+    this.map = $event;
+    this.initMarkers();
+  }
 
   initMarkers() {
-    this.mapService.getAll().subscribe(data => {
+    this.apiRestMapService.getAll().subscribe(data => {
       this.initialMarkers = data;
 
       for (let index = 0; index < this.initialMarkers.length; index++) {
+
         const element = this.initialMarkers[index];
-        const marker = this.generateMarker(element, index);
-        marker.addTo(this.map).bindPopup(`<b>${element.position.lat},  ${element.position.lan}</b>`);
-        this.map.panTo([element.position.lat, element.position.lan]);
+        const latLangUsed =Leaflet.latLng(element.position.lat, element.position.lan);
+
+        const marker = this.mapService.generateMarker(latLangUsed, index);
+        marker.addTo(this.map).bindPopup(`<b>${latLangUsed.lat},  ${latLangUsed.lng}</b>`);
+        this.map.panTo(latLangUsed);
         this.markers.push(marker)
+
       }
+
       const geocoderControl =(Leaflet.Control as any).geocoder().addTo(this.map);
       geocoderControl.on('markgeocode', (event: any) => {
         const location = event.geocode.center;
@@ -70,7 +83,7 @@ export class MapComponent {
                 Leaflet.latLng(location)
               ]
             }).addTo(this.map);
-            this.animate(marker);
+            this.mapService.move(marker, this.routingControl);
           }
           this.markersNumber = 2;
 
@@ -87,12 +100,28 @@ export class MapComponent {
 
     })
   }
-  generateMarker(data: any, index: number) {
-    return Leaflet.marker({ lat: data.position.lat, lng: data.position.lan }, {
-      draggable: data.draggable
-    })
-      .on('click', (event) => this.markerClicked(event, index))
-      .on('dragend', (event) => this.markerDragEnd(event, index));
+
+  mapClicked($event: any) {
+    const marker = Leaflet.marker(Leaflet.latLng($event.latlng.lat, $event.latlng.lng));
+    if (this.markersToUse.length == 0) {
+      this.markersToUse.push(marker.addTo(this.map) );
+    } else if (this.markersToUse.length == 1) {
+      this.markersToUse.push(marker.addTo(this.map))
+       this.routingControl = Leaflet.Routing.control({
+        waypoints: [this.markersToUse[0].getLatLng(), this.markersToUse[1].getLatLng()]
+      }).addTo(this.map);
+      this.mapService.move(this.markersToUse[0], this.routingControl);
+
+    }else if (this.markersToUse.length == 2){
+      this.map.removeLayer(this.markersToUse[0]);
+      this.map.removeLayer(this.markersToUse[1]);
+
+      if (this.routingControl)
+        this.map.removeControl(this.routingControl);
+
+      this.markersToUse = [];
+    }
+
   }
 
   public togglePolyline(): void {
@@ -108,58 +137,6 @@ export class MapComponent {
     }
     this.drawPolyline = !this.drawPolyline;
   }
-
-
-  onMapReady($event: Leaflet.Map) {
-    this.map = $event;
-    this.initMarkers();
-  }
-
-  mapClicked($event: any) {
-    if (this.markersNumber == undefined) {
-      this.markerRoot = Leaflet.marker([$event.latlng.lat, $event.latlng.lng]).addTo(this.map);
-      this.markersNumber = 1;
-    }else if (this.markersNumber == 1)
-    {
-      if (this.markerRoot != undefined) {
-        const marker: Marker = this.markerRoot;
-
-         this.routingControl = Leaflet.Routing.control({
-          waypoints: [
-            Leaflet.latLng(marker.getLatLng().lat, marker.getLatLng().lng),
-            Leaflet.latLng($event.latlng.lat, $event.latlng.lng)
-          ]
-        }).addTo(this.map);
-        this.animate(marker);
-      }
-      this.markersNumber = 2;
-
-    }else if (this.markersNumber == 2){
-      if (this.markerRoot)
-        this.map.removeLayer(this.markerRoot);
-      if (this.routingControl)
-        this.map.removeControl(this.routingControl);
-      this.markersNumber = undefined;
-
-    }
-
-
-  }
-  animate(marker: Marker){
-    if (this.routingControl)
-    this.routingControl.on('routesfound', (event: any) => {
-      event.routes[0].coordinates.forEach(function(coord: Leaflet.LatLng, index: number) {
-        setTimeout(() => {
-          marker.setLatLng([coord.lat, coord.lng]);
-        }, 100 * index);
-      });
-    });
-
-  }
-
-
-
-
 
   markerClicked($event: any, index: number) {
     console.log($event.latlng.lat, $event.latlng.lng);

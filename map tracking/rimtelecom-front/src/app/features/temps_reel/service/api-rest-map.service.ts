@@ -6,7 +6,7 @@ import {Observable} from "rxjs";
 @Injectable({
   providedIn: 'root'
 })
-export class MapService {
+export class ApiRestMapService {
 
   constructor(private httpClient: HttpClient) { }
 
